@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulator Aljabar Boolean & Karnaugh Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b1220; --card:#0f1724; --muted:#9aa9c9; --text:#e6eef8;
+    --accent:#36c2a6; --accent-2:#4aa3ff; --danger:#ff7a7a;
+    --glass: rgba(255,255,255,0.02);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    background: radial-gradient(800px 400px at 10% 10%, rgba(30,40,70,.12), transparent), var(--bg);
+    color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    transition: background .25s ease,color .25s ease;
+    padding:18px;
+  }
+  .dropdown-dark {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: #0f1724;   /* hitam kebiruan */
+  color: #e6eef8;              /* putih lembut */
+  border: 1px solid rgba(255,255,255,0.05);
+  font-size: 14px;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Saat di-hover */
+.dropdown-dark:hover {
+  background-color: #1a2338;
+}
+
+/* Saat aktif (klik) */
+.dropdown-dark:focus {
+  border-color: #36c2a6;
+  box-shadow: 0 0 0 2px rgba(54,194,166,0.4);
+}
+.light .dropdown-dark {
+  background-color: #ffffff;
+  color: #071233;
+  border: 1px solid rgba(0,0,0,0.1);
+}
+#simp-pill {
+  white-space: normal !important;
+  line-height: 1.6;
+}
+.kmap-horizontal {
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+.kmap-horizontal td {
+  border: 1px solid #666;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.kmap-cell.on {
+  background-color: #4caf50;
+  color: #fff;
+}
+.kmap-cell.dc {
+  background-color: #ff9800;
+  color: #fff;
+}
+.btn {
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn:hover {
+  background: #0b5ed7;
+}
+  .container{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  header h1{margin:0;font-size:18px}
+  header .sub{color:var(--muted);font-size:13px}
+  .card{background:linear-gradient(180deg,var(--card),rgba(0,0,0,0.02));border-radius:var(--radius);
+        padding:16px;border:1px solid rgba(255,255,255,0.02);box-shadow:0 6px 18px rgba(2,6,23,0.4)}
+  .flex{display:flex;gap:10px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:8px}
+  label{font-size:13px;color:var(--muted)}
+  input[type=text], textarea, select{
+    width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);
+    background:var(--glass); color:var(--text); outline:none; font-size:14px;
+  }
+  textarea{min-height:90px;resize:vertical}
+  .btn{padding:8px 12px;border-radius:10px;border:none;background:linear-gradient(180deg,var(--accent),var(--accent-2));color:white;font-weight:600;cursor:pointer}
+  .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+  .btn.warn{background:linear-gradient(180deg,#ff9c6b,#ff7a4d)}
+  .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);color:var(--muted);font-size:13px}
+  .muted{color:var(--muted)}
+  .tt{max-height:320px;overflow:auto;border:1px solid rgba(255,255,255,0.02);border-radius:10px;padding:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:center;padding:8px;border-bottom:1px solid rgba(255,255,255,0.02)}
+  thead th{position:sticky;top:0;background:transparent}
+  .kmap{display:grid;gap:8px;justify-content:center;align-items:center;margin-top:10px}
+  .kcell{width:64px;height:56px;border-radius:10px;background:rgba(255,255,255,0.02);display:grid;place-items:center;cursor:pointer;font-weight:700;color:var(--text);border:1px solid rgba(255,255,255,0.03)}
+  .kcell.on{background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#002028;border-color:transparent;box-shadow:0 8px 18px rgba(0,0,0,0.25)}
+  .kcell.small{width:52px;height:46px}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .gridlabels{display:flex;gap:8px;align-items:center}
+  .sep{height:1px;background:rgba(255,255,255,0.02);margin:10px 0;border-radius:4px}
+  .footer-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  .examples{display:flex;flex-direction:column;gap:8px}
+  .example-btn{background:transparent;border:1px dashed rgba(255,255,255,0.03);padding:8px;border-radius:8px;color:var(--text);cursor:pointer}
+  .mini{font-size:12px;color:var(--muted)}
+  .right-help{font-size:13px;color:var(--muted);line-height:1.4}
+  /* responsive */
+  @media (max-width:980px){
+    .container{grid-template-columns:1fr; padding-bottom:36px}
+    .footer-panels{grid-template-columns:1fr}
+    .kcell{width:52px;height:44px}
+  }
+  /* small tweaks for light mode elements */
+  .light .card{box-shadow:0 6px 18px rgba(10,20,40,0.04)}
+  .light .kcell{background:#f3f7fb;color:var(--text)}
+  .light .kcell.on{box-shadow:0 8px 18px rgba(0,0,0,0.08)}
+  .danger{color:var(--danger)}
+  .caption{font-size:13px;color:var(--muted)}
+  .top-row{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+  .right .muted{display:block;margin-top:6px}
+  .code{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;background:var(--glass);padding:8px;border-radius:8px}
+</style>
+</head>
+<body>
+  <header style="max-width:1200px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <h1>Simulator Aljabar Boolean & Karnaugh Map</h1>
+      <div class="sub">Interaktif — Evaluasi, Tabel Kebenaran, K-Map (1–4 var), Penyederhanaan SOP</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- LEFT -->
+    <section class="card">
+      <div class="top-row">
+        <div style="flex:1">
+          <label for="expr">Ekspresi Boolean</label>
+          <input id="expr" type="text" placeholder="Contoh: A'B + AC  atau  ~(A+B)*C  atau  A ^ B'">
+
+          <!-- 🔽 Hasil pindah ke bawah input -->
+          <div class="col" style="margin-top:10px">
+            <span id="vars-pill" class="pill">Variabel: —</span>
+            <span id="minterms-pill" class="pill">Minterm: —</span>
+            <span id="simp-pill" class="pill">Sederhana: —</span>
+          </div>
+        </div>
+
+        <!-- Tombol dibiarkan di sisi kanan -->
+        <div style="width:220px;display:flex;flex-direction:column;gap:8px">
+          <div class="controls">
+            <button id="btn-eval" class="btn">Evaluasi</button>
+            <button id="btn-clear" class="btn secondary">Bersihkan</button>
+          </div>
+        </div>
+
+
+
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3 style="margin:6px 0 10px">Tabel Kebenaran</h3>
+      <div class="tt" id="ttarea">
+        <div class="muted caption">Siap — masukkan ekspresi dan klik Evaluasi.</div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="footer-panels">
+        <div class="card" style="padding:12px">
+          <div class="mini muted">Catatan & Validasi</div>
+          <div id="validation" class="muted" style="margin-top:8px">Siap — masukkan ekspresi dan klik Evaluasi.</div>
+        </div>
+
+        <div class="card" style="padding:12px">
+        <div class="mini muted">Contoh Skenario Uji</div>
+        <select id="scenario-select" class="dropdown-dark">
+            <option value="">— Pilih Contoh —</option>
+            <option value="A'B + AC">F1 = A'B + AC</option>
+            <option value="A(B + C)">F2 = A(B + C)</option>
+            <option value="(A ^ B)C + A'B'">F3 = (A ^ B)C + A'B'</option>
+            <option value="(A + B)(C + D)">(F4) (A + B)(C + D)</option>
+            <option value="A'B' + AB">F5 = A'B' + AB (XNOR)</option>
+            <option value="A ^ B ^ C">F6 = A ^ B ^ C</option>
+            <option value="(A + B' C')(A' + C)">F7 = (A + B' C') (A' + C)</option>
+            <option value="(A B)' + C">F8 = (A B)' + C</option>
+            <option value="A B + A C + B C">F9 = A B + A C + B C</option>
+            <option value="(A + B + C)(A' + B)(B + C')">F10 = (A + B + C)(A' + B)(B + C')</option>
+        </select>
+        </div>
+
+
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <!-- ========== BAGIAN K-MAP ========== -->
+    <aside class="card right">
+      <h3 style="margin:0 0 8px">K-Map (1–4 variabel)</h3>
+      <div class="mini muted">Mode sel: klik sel untuk toggle 0 → 1 → d (don't-care) → 0</div>
+
+      <div class="sep"></div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="btn-simplify" class="btn">Sederhanakan (SOP)</button>
+        <button id="btn-reset" class="btn secondary">Reset</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <label for="minterm-io">Impor / Ekspor Minterm (pisah koma). Gunakan 'd' sebelum angka untuk don't-care. Contoh: 0,1,2,5  atau  d2,4,7</label>
+        <input id="minterm-io" placeholder="contoh: 0,1,2,5 atau d2,4,7" />
+        <div class="controls" style="margin-top:8px">
+          <button id="btn-import" class="btn secondary">Impor → K-Map</button>
+          <button id="btn-export" class="btn secondary">Ekspor dari K-Map</button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div class="mini muted">Ekspresi Tersederhana (SOP)</div>
+          <div id="out-simplified" class="code" style="margin-top:8px">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="mini muted">Variabel (K-Map):</div>
+          <div id="kvars" class="pill" style="margin-top:8px">—</div>
+        </div>
+      </div>
+
+      <div id="kmapWrap" style="min-height:140px;color:#ccc">K-Map akan muncul di sini.</div>
+
+      <div class="sep"></div>
+
+      <div class="right-help">
+        <strong>Petunjuk singkat:</strong>
+        <ul style="margin:6px 0 0 18px">
+          <li>Masukkan ekspresi, klik <b>Evaluasi</b> untuk tabel & K-Map.</li>
+          <li>Jika variabel >4, K-Map dinonaktifkan tetapi tabel tetap tampil.</li>
+          <li>Impor minterm akan mengisi K-Map; ekspor menghasilkan string minterm.</li>
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+
+<script>
+// 🔹 FUNGSI PENYEDERHANAAN (BENTUK SOP)
+function simplifyToSOP(vars, table) {
+  const terms = [];
+  for (let i = 0; i < table.length; i++) {
+    if (table[i].Y === 1) {
+      let term = "";
+      for (let j = 0; j < vars.length; j++) {
+        term += table[i][vars[j]] ? vars[j] : vars[j] + "'";
+      }
+      terms.push(term);
+    }
+  }
+  return terms.length ? terms.join(" + ") : "0";
+}
+
+// 🔹 DROPDOWN CONTOH
+const scenarioSelect = document.querySelector("#scenario-select");
+if (scenarioSelect) {
+  scenarioSelect.addEventListener("change", (e) => {
+    const expr = e.target.value;
+    if (expr) {
+      document.querySelector("#expr").value = expr;
+      document.querySelector("#validation").textContent = `💡 Contoh dimuat: ${expr}`;
+    }
+  });
+}
+
+// 🔹 TOKENIZER
+function tokenize(expr) {
+  expr = expr.replace(/\s+/g, "");
+  let tokens = [], i = 0;
+  while (i < expr.length) {
+    const c = expr[i];
+    if (/[A-Z]/i.test(c)) { tokens.push({ t: "VAR", v: c }); i++; continue; }
+    if (c == "'") { tokens.push({ t: "OP", v: "NOT" }); i++; continue; }
+    if (c == '(' || c == ')') { tokens.push({ t: "PAR", v: c }); i++; continue; }
+    if (c == '+' || c == '|') { tokens.push({ t: "OP", v: "OR" }); i++; continue; }
+    if (c == '*' || c == '&') { tokens.push({ t: "OP", v: "AND" }); i++; continue; }
+    if (c == '^') { tokens.push({ t: "OP", v: "XOR" }); i++; continue; }
+    if (c == '~') { tokens.push({ t: "OP", v: "NOT" }); i++; continue; }
+    i++;
+  }
+  return tokens;
+}
+
+// 🔹 KONVERSI KE RPN
+function toRPN(tokens) {
+  const prec = { NOT: 3, AND: 2, OR: 1, XOR: 1 };
+  const out = [], stack = [];
+  for (const t of tokens) {
+    if (t.t == "VAR") out.push(t);
+    else if (t.t == "OP") {
+      while (stack.length && stack[stack.length - 1].t == "OP" &&
+        prec[stack[stack.length - 1].v] >= prec[t.v]) {
+        out.push(stack.pop());
+      }
+      stack.push(t);
+    } else if (t.t == "PAR") {
+      if (t.v == '(') stack.push(t);
+      else {
+        while (stack.length && stack[stack.length - 1].v != '(') out.push(stack.pop());
+        stack.pop();
+      }
+    }
+  }
+  while (stack.length) out.push(stack.pop());
+  return out;
+}
+
+// 🔹 EVALUASI EKSPRESI RPN
+function evalRPN(rpn, vars) {
+  const st = [];
+  for (const t of rpn) {
+    if (t.t === "VAR") st.push(vars[t.v] || 0);
+    else if (t.t === "OP") {
+      if (t.v === 'NOT') {
+        const a = st.pop(); st.push(!a);
+      } else {
+        const b = st.pop(), a = st.pop();
+        if (t.v === 'AND') st.push(a && b);
+        else if (t.v === 'OR') st.push(a || b);
+        else if (t.v === 'XOR') st.push(Boolean(a) != Boolean(b));
+      }
+    }
+  }
+  return st.pop() ? 1 : 0;
+}
+
+// 🔹 VARIABEL UNIK
+function getVars(tokens) {
+  return [...new Set(tokens.filter(t => t.t == "VAR").map(t => t.v))];
+}
+
+// 🔹 BUAT TABEL KEBENARAN
+function makeTable(vars, rpn) {
+  const n = vars.length, rows = [];
+  for (let i = 0; i < (1 << n); i++) {
+    const combo = {};
+    for (let j = 0; j < n; j++) {
+      combo[vars[j]] = (i >> ((n - 1) - j)) & 1;
+    }
+    const Y = evalRPN(rpn, combo);
+    rows.push({ ...combo, Y });
+  }
+  return rows;
+}
+
+// 🔹 TOMBOL EVALUASI
+document.querySelector("#btn-eval").onclick = () => {
+  const expr = document.querySelector("#expr").value;
+  try {
+    const tokens = tokenize(expr);
+    const vars = getVars(tokens);
+    const rpn = toRPN(tokens);
+    const table = makeTable(vars, rpn);
+
+    let html = `<table><tr>${vars.map(v => `<th>${v}</th>`).join("")}<th>Y</th></tr>`;
+    for (const row of table) {
+      html += `<tr>${vars.map(v => `<td>${row[v]}</td>`).join("")}<td>${row.Y}</td></tr>`;
+    }
+    html += `</table>`;
+    document.querySelector("#ttarea").innerHTML = html;
+
+    document.querySelector("#validation").textContent = "✅ Evaluasi berhasil tanpa error.";
+    document.querySelector("#vars-pill").textContent = "Variabel: " + (vars.length ? vars.join(", ") : "—");
+
+    const minterms = [];
+    for (let i = 0; i < table.length; i++) if (table[i].Y === 1) minterms.push(i);
+    document.querySelector("#minterms-pill").textContent = "Minterm: " + (minterms.length ? minterms.join(",") : "—");
+
+    const simplified = simplifyToSOP(vars, table);
+    document.querySelector("#simp-pill").innerHTML = "Sederhana: " + simplified;
+
+  } catch (e) {
+    document.querySelector("#validation").textContent = "❌ Kesalahan: " + e.message;
+  }
+};
+
+// 🔹 TOMBOL BERSIHKAN
+document.querySelector("#btn-clear").onclick = () => {
+  document.querySelector("#expr").value = "";
+  document.querySelector("#ttarea").innerHTML = "<div class='muted caption'>Siap — masukkan ekspresi dan klik Evaluasi.</div>";
+  document.querySelector("#validation").textContent = "Siap — masukkan ekspresi dan klik Evaluasi.";
+  document.querySelector("#vars-pill").textContent = "Variabel: —";
+  document.querySelector("#minterms-pill").textContent = "Minterm: —";
+  document.querySelector("#simp-pill").textContent = "Sederhana: —";
+};
+
+// 🔹 BAGIAN K-MAP (4 VARIABEL)
+const inputMinterm = document.getElementById("minterm-io");
+const btnImport = document.getElementById("btn-import");
+const btnExport = document.getElementById("btn-export");
+const btnSimplify = document.getElementById("btn-simplify");
+const btnReset = document.getElementById("btn-reset");
+const outSimplified = document.getElementById("out-simplified");
+const kvars = document.getElementById("kvars");
+const kmapWrap = document.getElementById("kmapWrap");
+
+let minterms = [];
+let dontCares = [];
+let variables = ["A", "B", "C", "D"];
+
+function renderKmap() {
+  const varCount = 4;
+  kvars.textContent = variables.slice(0, varCount).join(", ");
+  const gray = [0, 1, 3, 2];
+
+  let html = `<table class="kmap-horizontal"><tbody>`;
+  for (let r = 0; r < 4; r++) {
+    html += "<tr>";
+    for (let c = 0; c < 4; c++) {
+      const idx = (gray[r] << 2) | gray[c];
+      let cls = "kmap-cell";
+      let val = "0";
+      if (minterms.includes(idx)) { cls += " on"; val = "1"; }
+      else if (dontCares.includes(idx)) { cls += " dc"; val = "d"; }
+      html += `<td class="${cls}" data-idx="${idx}">${val}</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</tbody></table>";
+  kmapWrap.innerHTML = html;
+
+  document.querySelectorAll(".kmap-cell").forEach(cell => {
+    cell.addEventListener("click", () => {
+      const idx = parseInt(cell.getAttribute("data-idx"));
+      if (minterms.includes(idx)) {
+        minterms = minterms.filter(x => x !== idx);
+        dontCares.push(idx);
+      } else if (dontCares.includes(idx)) {
+        dontCares = dontCares.filter(x => x !== idx);
+      } else {
+        minterms.push(idx);
+      }
+      renderKmap();
+    });
+  });
+}
+
+function simplifyKmap() {
+  const varCount = 4;
+  const varsUsed = variables.slice(0, varCount);
+  const table = [];
+  for (let i = 0; i < 16; i++) {
+    const combo = {};
+    for (let j = 0; j < varCount; j++) {
+      combo[varsUsed[j]] = (i >> ((varCount - 1) - j)) & 1;
+    }
+    combo.Y = minterms.includes(i) ? 1 : 0;
+    table.push(combo);
+  }
+  const simplified = simplifyToSOP(varsUsed, table);
+  outSimplified.textContent = simplified;
+}
+
+function resetKmap() {
+  minterms = [];
+  dontCares = [];
+  inputMinterm.value = "";
+  outSimplified.textContent = "—";
+  kmapWrap.innerHTML = "K-Map akan muncul di sini.";
+}
+
+btnImport.addEventListener("click", () => {
+  const val = inputMinterm.value.trim();
+  if (!val) return;
+  const tokens = val.split(",").map(v => v.trim());
+  minterms = tokens.filter(v => !v.startsWith("d")).map(v => parseInt(v));
+  dontCares = tokens.filter(v => v.startsWith("d")).map(v => parseInt(v.substring(1)));
+  renderKmap();
+});
+
+btnExport.addEventListener("click", () => {
+  const dPart = dontCares.length ? ",d" + dontCares.join(",d") : "";
+  inputMinterm.value = minterms.join(",") + dPart;
+});
+
+btnSimplify.addEventListener("click", simplifyKmap);
+btnReset.addEventListener("click", resetKmap);
+
+renderKmap();
+
+</script>
+
+
+
+</body>
+</html>
