@@ -25,29 +25,30 @@ if (scenarioSelect) {
   });
 }
 
-// === TOKENIZER (dengan deteksi error umum) ===
+// === TOKENIZER (versi revisi — lebih fleksibel, tetap aman) ===
 function tokenize(expr) {
   expr = expr.replace(/\s+/g, "");
   if (!expr.length) throw new Error("Ekspresi kosong!");
 
   const tokens = [];
   const validVars = /[A-Z]/i;
-  const validOps = ["'", "~", "+", "|", "*", "&", "^", "(", ")"];
   let lastType = null;
 
   for (let i = 0; i < expr.length; i++) {
     const c = expr[i];
 
-    // Variabel (A, B, C, ...)
+    // Variabel
     if (validVars.test(c)) {
-      // Cegah variabel langsung setelah variabel (contoh: AB)
-      if (lastType === "VAR") throw new Error(`Variabel berurutan tanpa operator di sekitar posisi ${i}: '${c}'`);
+      // jika sebelumnya VAR atau PAR_CLOSE, tambahkan AND implisit
+      if (lastType === "VAR" || lastType === "PAR_CLOSE") {
+        tokens.push({ t: "OP", v: "AND" });
+      }
       tokens.push({ t: "VAR", v: c });
       lastType = "VAR";
       continue;
     }
 
-    // Operator NOT
+    // NOT
     if (c === "'" || c === "~") {
       if (lastType === "OP" && tokens[tokens.length - 1].v !== "NOT" && tokens[tokens.length - 1].v !== "(")
         throw new Error(`Operator berurutan tanpa operand di posisi ${i}: '${c}'`);
@@ -56,7 +57,7 @@ function tokenize(expr) {
       continue;
     }
 
-    // Operator AND
+    // AND
     if (c === "*" || c === "&") {
       if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
         throw new Error(`Operator AND tanpa operand sebelum/ sesudah di posisi ${i}.`);
@@ -65,7 +66,7 @@ function tokenize(expr) {
       continue;
     }
 
-    // Operator OR
+    // OR
     if (c === "+" || c === "|") {
       if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
         throw new Error(`Operator OR tanpa operand sebelum/ sesudah di posisi ${i}.`);
@@ -74,7 +75,7 @@ function tokenize(expr) {
       continue;
     }
 
-    // Operator XOR
+    // XOR
     if (c === "^") {
       if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
         throw new Error(`Operator XOR tanpa operand sebelum/ sesudah di posisi ${i}.`);
@@ -85,8 +86,10 @@ function tokenize(expr) {
 
     // Kurung buka
     if (c === "(") {
-      // Contoh error: variabel langsung diikuti kurung tanpa operator, misal A(B+C)
-      if (lastType === "VAR") throw new Error(`Kurung buka setelah variabel tanpa operator di posisi ${i}.`);
+      // tambahkan AND implisit kalau sebelumnya variabel atau kurung tutup
+      if (lastType === "VAR" || lastType === "PAR_CLOSE") {
+        tokens.push({ t: "OP", v: "AND" });
+      }
       tokens.push({ t: "PAR", v: "(" });
       lastType = "PAR_OPEN";
       continue;
@@ -111,6 +114,7 @@ function tokenize(expr) {
 
   return tokens;
 }
+
 
 
 
@@ -219,7 +223,7 @@ document.querySelector("#btn-eval").onclick = () => {
     html += `</table>`;
     document.querySelector("#ttarea").innerHTML = html;
 
-    document.querySelector("#validation").textContent = "✅ Evaluasi berhasil tanpa error.";
+    document.querySelector("#validation").innerHTML = "✅ Evaluasi berhasil tanpa error.";
     document.querySelector("#vars-pill").textContent = "Variabel: " + (vars.length ? vars.join(", ") : "—");
 
     const minterms = [];
@@ -230,9 +234,15 @@ document.querySelector("#btn-eval").onclick = () => {
     document.querySelector("#simp-pill").innerHTML = "Sederhana: " + simplified;
 
   } catch (e) {
-    document.querySelector("#validation").textContent = "❌ Kesalahan: " + e.message;
+    // 🔴 Kalau error, tampilkan pesan dan kosongkan hasil-hasil lain
+    document.querySelector("#validation").innerHTML = `<span style="color:#f87171;font-weight:600;">❌ Kesalahan:</span> ${e.message}`;
+    document.querySelector("#ttarea").innerHTML = "<div class='muted caption'>Siap — masukkan ekspresi dan klik Evaluasi.</div>";
+    document.querySelector("#vars-pill").textContent = "Variabel: —";
+    document.querySelector("#minterms-pill").textContent = "Minterm: —";
+    document.querySelector("#simp-pill").textContent = "Sederhana: —";
   }
 };
+
 
 // === TOMBOL BERSIHKAN ===
 document.querySelector("#btn-clear").onclick = () => {
