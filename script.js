@@ -25,47 +25,142 @@ if (scenarioSelect) {
   });
 }
 
-// === TOKENIZER ===
+// === TOKENIZER (dengan deteksi error umum) ===
 function tokenize(expr) {
   expr = expr.replace(/\s+/g, "");
-  let tokens = [], i = 0;
-  while (i < expr.length) {
+  if (!expr.length) throw new Error("Ekspresi kosong!");
+
+  const tokens = [];
+  const validVars = /[A-Z]/i;
+  const validOps = ["'", "~", "+", "|", "*", "&", "^", "(", ")"];
+  let lastType = null;
+
+  for (let i = 0; i < expr.length; i++) {
     const c = expr[i];
-    if (/[A-Z]/i.test(c)) { tokens.push({ t: "VAR", v: c }); i++; continue; }
-    if (c == "'") { tokens.push({ t: "OP", v: "NOT" }); i++; continue; }
-    if (c == '(' || c == ')') { tokens.push({ t: "PAR", v: c }); i++; continue; }
-    if (c == '+' || c == '|') { tokens.push({ t: "OP", v: "OR" }); i++; continue; }
-    if (c == '*' || c == '&') { tokens.push({ t: "OP", v: "AND" }); i++; continue; }
-    if (c == '^') { tokens.push({ t: "OP", v: "XOR" }); i++; continue; }
-    if (c == '~') { tokens.push({ t: "OP", v: "NOT" }); i++; continue; }
-    i++;
+
+    // Variabel (A, B, C, ...)
+    if (validVars.test(c)) {
+      // Cegah variabel langsung setelah variabel (contoh: AB)
+      if (lastType === "VAR") throw new Error(`Variabel berurutan tanpa operator di sekitar posisi ${i}: '${c}'`);
+      tokens.push({ t: "VAR", v: c });
+      lastType = "VAR";
+      continue;
+    }
+
+    // Operator NOT
+    if (c === "'" || c === "~") {
+      if (lastType === "OP" && tokens[tokens.length - 1].v !== "NOT" && tokens[tokens.length - 1].v !== "(")
+        throw new Error(`Operator berurutan tanpa operand di posisi ${i}: '${c}'`);
+      tokens.push({ t: "OP", v: "NOT" });
+      lastType = "OP";
+      continue;
+    }
+
+    // Operator AND
+    if (c === "*" || c === "&") {
+      if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
+        throw new Error(`Operator AND tanpa operand sebelum/ sesudah di posisi ${i}.`);
+      tokens.push({ t: "OP", v: "AND" });
+      lastType = "OP";
+      continue;
+    }
+
+    // Operator OR
+    if (c === "+" || c === "|") {
+      if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
+        throw new Error(`Operator OR tanpa operand sebelum/ sesudah di posisi ${i}.`);
+      tokens.push({ t: "OP", v: "OR" });
+      lastType = "OP";
+      continue;
+    }
+
+    // Operator XOR
+    if (c === "^") {
+      if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
+        throw new Error(`Operator XOR tanpa operand sebelum/ sesudah di posisi ${i}.`);
+      tokens.push({ t: "OP", v: "XOR" });
+      lastType = "OP";
+      continue;
+    }
+
+    // Kurung buka
+    if (c === "(") {
+      // Contoh error: variabel langsung diikuti kurung tanpa operator, misal A(B+C)
+      if (lastType === "VAR") throw new Error(`Kurung buka setelah variabel tanpa operator di posisi ${i}.`);
+      tokens.push({ t: "PAR", v: "(" });
+      lastType = "PAR_OPEN";
+      continue;
+    }
+
+    // Kurung tutup
+    if (c === ")") {
+      if (lastType === "OP" || lastType === "PAR_OPEN")
+        throw new Error(`Ekspresi kosong atau operator di dalam kurung di posisi ${i}.`);
+      tokens.push({ t: "PAR", v: ")" });
+      lastType = "PAR_CLOSE";
+      continue;
+    }
+
+    // Karakter tidak valid
+    throw new Error(`Karakter tidak dikenal: '${c}' di posisi ${i}.`);
   }
+
+  // Tidak boleh diakhiri dengan operator
+  if (lastType === "OP" || lastType === "PAR_OPEN")
+    throw new Error("Ekspresi diakhiri dengan operator atau kurung buka tanpa penutup.");
+
   return tokens;
 }
 
-// === KONVERSI KE RPN ===
+
+
+// === KONVERSI KE RPN (dengan deteksi kurung tidak seimbang) ===
 function toRPN(tokens) {
   const prec = { NOT: 3, AND: 2, OR: 1, XOR: 1 };
   const out = [], stack = [];
-  for (const t of tokens) {
-    if (t.t === "VAR") out.push(t);
+  let balance = 0;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i];
+
+    if (t.t === "VAR") {
+      out.push(t);
+    }
+
     else if (t.t === "OP") {
-      while (stack.length && stack[stack.length - 1].t === "OP" &&
-        prec[stack[stack.length - 1].v] >= prec[t.v]) {
-        out.push(stack.pop());
+      if (t.v === "NOT") {
+        stack.push(t);
+      } else {
+        while (stack.length && stack[stack.length - 1].t === "OP" &&
+          prec[stack[stack.length - 1].v] >= prec[t.v]) {
+          out.push(stack.pop());
+        }
+        stack.push(t);
       }
-      stack.push(t);
-    } else if (t.t === "PAR") {
-      if (t.v === '(') stack.push(t);
-      else {
-        while (stack.length && stack[stack.length - 1].v !== '(') out.push(stack.pop());
+    }
+
+    else if (t.t === "PAR") {
+      if (t.v === "(") {
+        stack.push(t);
+        balance++;
+      } else {
+        balance--;
+        if (balance < 0) throw new Error("Kurung tutup berlebih atau tidak seimbang.");
+        while (stack.length && stack[stack.length - 1].v !== "(") {
+          out.push(stack.pop());
+        }
+        if (!stack.length) throw new Error("Kurung buka tidak ditemukan.");
         stack.pop();
       }
     }
   }
+
+  if (balance !== 0) throw new Error("Kurung buka dan tutup tidak seimbang.");
   while (stack.length) out.push(stack.pop());
   return out;
 }
+
+
 
 // === EVALUASI RPN ===
 function evalRPN(rpn, vars) {
