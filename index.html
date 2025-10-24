@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simulator Aljabar Boolean & Karnaugh Map</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header style="max-width:1200px;margin:0 auto 12px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <h1>Simulator Aljabar Boolean & Karnaugh Map</h1>
+      <div class="sub">Interaktif — Evaluasi, Tabel Kebenaran, K-Map (1–4 var), Penyederhanaan SOP</div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- LEFT -->
+    <section class="card">
+      <div class="top-row">
+        <div style="flex:1">
+          <label for="expr">Ekspresi Boolean</label>
+          <input id="expr" type="text" placeholder="Contoh: A'B + AC  atau  ~(A+B)*C  atau  A ^ B'">
+
+          <!-- 🔽 Hasil pindah ke bawah input -->
+          <div class="col" style="margin-top:10px">
+            <span id="vars-pill" class="pill">Variabel: —</span>
+            <span id="minterms-pill" class="pill">Minterm: —</span>
+            <span id="simp-pill" class="pill">Sederhana: —</span>
+          </div>
+        </div>
+
+        <!-- Tombol kanan -->
+        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:10px;">
+          <button id="btn-eval" class="btn" style="min-width:120px; padding:6px 16px;">Evaluasi</button>
+          <button id="btn-clear" class="btn secondary" style="min-width:120px; padding:6px 16px;">Bersihkan</button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <h3 style="margin:6px 0 10px">Tabel Kebenaran</h3>
+      <div class="tt" id="ttarea">
+        <div class="muted caption">Siap — masukkan ekspresi dan klik Evaluasi.</div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="footer-panels">
+        <div class="card" style="padding:12px">
+          <div class="mini muted">Catatan & Validasi</div>
+          <div id="validation" class="muted" style="margin-top:8px">Siap — masukkan ekspresi dan klik Evaluasi.</div>
+        </div>
+
+        <div class="card" style="padding:12px">
+          <div class="mini muted">Contoh Skenario Uji</div>
+          <select id="scenario-select" class="dropdown-dark">
+              <option value="">— Pilih Contoh —</option>
+              <option value="A'B + AC">F1 = A'B + AC</option>
+              <option value="A(B + C)">F2 = A(B + C)</option>
+              <option value="(A ^ B)C + A'B'">F3 = (A ^ B)C + A'B'</option>
+              <option value="(A + B)(C + D)">F4 = (A + B)(C + D)</option>
+              <option value="A'B' + AB">F5 = A'B' + AB (XNOR)</option>
+              <option value="A ^ B ^ C">F6 = A ^ B ^ C</option>
+              <option value="(A + B' C')(A' + C)">F7 = (A + B' C') (A' + C)</option>
+              <option value="(A B)' + C">F8 = (A B)' + C</option>
+              <option value="A B + A C + B C">F9 = A B + A C + B C</option>
+              <option value="(A + B + C)(A' + B)(B + C')">F10 = (A + B + C)(A' + B)(B + C')</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <aside class="card right">
+      <h3 style="margin:0 0 8px">K-Map (1–4 variabel)</h3>
+      <div class="mini muted">Mode sel: klik sel untuk toggle 0 → 1 → d (don't-care) → 0</div>
+
+      <div class="sep"></div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="btn-simplify" class="btn">Sederhanakan (SOP)</button>
+        <button id="btn-reset" class="btn secondary">Reset</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <label for="minterm-io">Impor / Ekspor Minterm (pisah koma). Contoh: 0,1,2,5  atau  d2,4,7</label>
+        <input id="minterm-io" placeholder="contoh: 0,1,2,5 atau d2,4,7" />
+        <div class="controls" style="margin-top:8px">
+          <button id="btn-import" class="btn secondary">Impor → K-Map</button>
+          <button id="btn-export" class="btn secondary">Ekspor dari K-Map</button>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div class="mini muted">Ekspresi Tersederhana (SOP)</div>
+          <div id="out-simplified" class="code" style="margin-top:8px">—</div>
+        </div>
+        <div style="text-align:right">
+          <div class="mini muted">Variabel (K-Map):</div>
+          <div id="kvars" class="pill" style="margin-top:8px">—</div>
+        </div>
+      </div>
+
+      <div id="kmapWrap" style="min-height:140px;color:#ccc">K-Map akan muncul di sini.</div>
+
+      <div class="sep"></div>
+
+      <div class="right-help">
+        <strong>Petunjuk singkat:</strong>
+        <ul style="margin:6px 0 0 18px">
+          <li>Masukkan ekspresi, klik <b>Evaluasi</b> untuk tabel & K-Map.</li>
+          <li>Jika variabel >4, K-Map dinonaktifkan tetapi tabel tetap tampil.</li>
+          <li>Impor minterm akan mengisi K-Map; ekspor menghasilkan string minterm.</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
