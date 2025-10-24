@@ -25,7 +25,7 @@ if (scenarioSelect) {
   });
 }
 
-// === TOKENIZER (versi revisi — lebih fleksibel, tetap aman) ===
+// === TOKENIZER (versi final — mendukung A'B', (A+B')C, dll) ===
 function tokenize(expr) {
   expr = expr.replace(/\s+/g, "");
   if (!expr.length) throw new Error("Ekspresi kosong!");
@@ -39,8 +39,8 @@ function tokenize(expr) {
 
     // Variabel
     if (validVars.test(c)) {
-      // jika sebelumnya VAR atau PAR_CLOSE, tambahkan AND implisit
-      if (lastType === "VAR" || lastType === "PAR_CLOSE") {
+      if (lastType === "VAR" || lastType === "PAR_CLOSE" || lastType === "NOT") {
+        // Tambahkan AND implisit
         tokens.push({ t: "OP", v: "AND" });
       }
       tokens.push({ t: "VAR", v: c });
@@ -53,7 +53,7 @@ function tokenize(expr) {
       if (lastType === "OP" && tokens[tokens.length - 1].v !== "NOT" && tokens[tokens.length - 1].v !== "(")
         throw new Error(`Operator berurutan tanpa operand di posisi ${i}: '${c}'`);
       tokens.push({ t: "OP", v: "NOT" });
-      lastType = "OP";
+      lastType = "NOT"; // biar bisa tangkap pola A'B
       continue;
     }
 
@@ -68,12 +68,13 @@ function tokenize(expr) {
 
     // OR
     if (c === "+" || c === "|") {
-      if (lastType !== "VAR" && lastType !== "PAR_CLOSE")
+    if (lastType !== "VAR" && lastType !== "PAR_CLOSE" && lastType !== "NOT")
         throw new Error(`Operator OR tanpa operand sebelum/ sesudah di posisi ${i}.`);
-      tokens.push({ t: "OP", v: "OR" });
-      lastType = "OP";
-      continue;
+    tokens.push({ t: "OP", v: "OR" });
+    lastType = "OP";
+    continue;
     }
+
 
     // XOR
     if (c === "^") {
@@ -86,8 +87,8 @@ function tokenize(expr) {
 
     // Kurung buka
     if (c === "(") {
-      // tambahkan AND implisit kalau sebelumnya variabel atau kurung tutup
-      if (lastType === "VAR" || lastType === "PAR_CLOSE") {
+      if (lastType === "VAR" || lastType === "PAR_CLOSE" || lastType === "NOT") {
+        // AND implisit sebelum kurung
         tokens.push({ t: "OP", v: "AND" });
       }
       tokens.push({ t: "PAR", v: "(" });
@@ -104,7 +105,6 @@ function tokenize(expr) {
       continue;
     }
 
-    // Karakter tidak valid
     throw new Error(`Karakter tidak dikenal: '${c}' di posisi ${i}.`);
   }
 
@@ -114,6 +114,7 @@ function tokenize(expr) {
 
   return tokens;
 }
+
 
 
 
